@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>netft</name>
+  <description> the netft metapackage </description>
+  <author>Derek King</author>
+  
+  <version>0.2.0</version>
+  <maintainer email="fsuarez6@gmail.com">Francisco Suarez-Ruiz</maintainer>
+  <license>BSD</license>
+  <url type="website">https://github.com/fsuarez6/grips</url>
+  <url type="repository">https://github.com/fsuarez6/grips</url>
+  <author>Francisco Suarez-Ruiz</author>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <run_depend>netft_ethercat_hardware</run_depend>
+  <run_depend>netft_example_controllers</run_depend>
+  <run_depend>netft_rdt_driver</run_depend>
+  
+  <export>
+     <metapackage/> 
+  </export>
+  
+</package>
