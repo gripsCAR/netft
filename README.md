@@ -64,7 +64,7 @@ roslaunch netft_rdt_driver netft.launch
 
 ## Changelog
 ### 0.2.0 (2014-05-14)
-* Catkinized netft metapackage
+* Catkinized `netft` metapackage
 * Contributors: fsuarez6
 
 ### 0.1.3 (2012-02-27)
@@ -88,7 +88,7 @@ roslaunch netft_rdt_driver netft.launch
 
 ## Roadmap
 
-### 0.3.0 (2013-05-20)
+### 0.2.1 (2013-05-20)
 * Improve `netft_node`
 * Contributors: fsuarez6
 

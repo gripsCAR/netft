@@ -37,11 +37,11 @@
  * Publishes it ROS topic
  */
 
-#include "ros/ros.h"
+#include <ros/ros.h>
 #include "netft_rdt_driver/netft_rdt_driver.h"
-#include "geometry_msgs/WrenchStamped.h"
-#include "diagnostic_msgs/DiagnosticArray.h"
-#include "diagnostic_updater/DiagnosticStatusWrapper.h"
+#include <geometry_msgs/WrenchStamped.h>
+#include <diagnostic_msgs/DiagnosticArray.h>
+#include <diagnostic_updater/DiagnosticStatusWrapper.h>
 #include <unistd.h>
 #include <iostream>
 #include <memory>
@@ -54,62 +54,34 @@ using namespace std;
 int main(int argc, char **argv)
 { 
   ros::init(argc, argv, "netft_node");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh, nh_private("~");
+  
+  // Get parameters from the server
+  double publish_rate;
+  string ip_address, sensor_name, frame_id;
+  nh_private.param(std::string("ip_address"), ip_address, std::string("192.168.1.1"));
+  nh_private.param(std::string("sensor_name"), sensor_name, std::string("netft"));
+  nh_private.param(std::string("frame_id"), frame_id, std::string("base_link"));
+  nh_private.param(std::string("publish_rate"), publish_rate, 100.0);
+  if (!nh_private.hasParam("ip_address"))
+    ROS_WARN_STREAM("Parameter [~ip_address] not found, using default: " << ip_address);
+  if (!nh_private.hasParam("sensor_name"))
+    ROS_WARN_STREAM("Parameter [~sensor_name] not found, using default: " << sensor_name );
+  if (!nh_private.hasParam("frame_id"))
+    ROS_WARN_STREAM("Parameter [~frame_id] not found, using default: " << frame_id );
+  if (!nh_private.hasParam("publish_rate"))
+    ROS_WARN_STREAM("Parameter [~publish_rate] not found, using default: " << publish_rate << " Hz");
 
-  float pub_rate_hz;
-  string address;
-
-  po::options_description desc("Options");
-  desc.add_options()
-    ("help", "display help")
-    ("rate", po::value<float>(&pub_rate_hz)->default_value(100.0), "set publish rate (in hertz)")
-    ("wrench", "publish older Wrench message type instead of WrenchStamped")
-    ("address", po::value<string>(&address), "IP address of NetFT box")
-    ;
-     
-  po::positional_options_description p;
-  p.add("address",  1);
-
-  po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
-  po::notify(vm);
-
-  if (vm.count("help"))
-  {
-    cout << desc << endl;
-    //usage(progname);
-    exit(EXIT_SUCCESS);
-  }      
-
-  if (!vm.count("address"))
-  {
-    cout << desc << endl;
-    cerr << "Please specify address of NetFT" << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  bool publish_wrench = false;
-  if (vm.count("wrench"))
-  {
-    publish_wrench = true;
-    ROS_WARN("Publishing NetFT data as geometry_msgs::Wrench is deprecated");
-  }
-
-  std::auto_ptr<netft_rdt_driver::NetFTRDTDriver> netft(new netft_rdt_driver::NetFTRDTDriver(address));
+  std::auto_ptr<netft_rdt_driver::NetFTRDTDriver> netft(new netft_rdt_driver::NetFTRDTDriver(ip_address));
+  
+  // Setup publishers
   ros::Publisher pub;
-  if (publish_wrench)
-  {
-    pub = nh.advertise<geometry_msgs::Wrench>("netft_data", 100);
-  }
-  else 
-  {
-    pub = nh.advertise<geometry_msgs::WrenchStamped>("netft_data", 100);
-  }
-  ros::Rate pub_rate(pub_rate_hz);
+  pub = nh.advertise<geometry_msgs::WrenchStamped>(sensor_name + "/data", 100);
+  ros::Rate pub_rate(publish_rate);
   geometry_msgs::WrenchStamped data;
 
   ros::Duration diag_pub_duration(1.0);
-  ros::Publisher diag_pub = nh.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics", 2);
+  ros::Publisher diag_pub = nh.advertise<diagnostic_msgs::DiagnosticArray>(sensor_name + "/diagnostics", 2);
   diagnostic_msgs::DiagnosticArray diag_array;
   diag_array.status.reserve(1);
   diagnostic_updater::DiagnosticStatusWrapper diag_status;
@@ -120,15 +92,8 @@ int main(int argc, char **argv)
     if (netft->waitForNewData())
     {
       netft->getData(data);
-      if (publish_wrench) 
-      {
-        //geometry_msgs::Wrench(data.wrench);
-        pub.publish(data.wrench);
-      }
-      else 
-      {
-        pub.publish(data);
-      }
+      data.header.frame_id = frame_id;
+      pub.publish(data);
     }
     
     ros::Time current_time(ros::Time::now());
